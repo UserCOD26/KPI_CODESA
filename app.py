@@ -45,7 +45,7 @@ COLUMNAS_METAS = ['Año', 'meta_mario', 'meta_david', 'meta_hellen', 'premio_mar
 DEFAULT_DATA = {col: 0.0 if col not in ['Año', 'Mes', 'm_clientes', 'm_contenido', 'd_seg', 'd_obra', 'h_citas', 'h_mail', 'h_fb', 'h_art'] else 0 for col in COLUMNAS_BD if col not in ['Año', 'Mes']}
 
 # ==========================================
-# 🔌 SISTEMA ANTICAÍDAS Y CONEXIÓN A BD
+# 🔌 SISTEMA ANTICAÍDAS Y CONEXIÓN A BD (A PRUEBA DE HOJAS VACÍAS)
 # ==========================================
 conexion_exitosa = False
 
@@ -54,34 +54,47 @@ if 'df_metas_memoria' not in st.session_state: st.session_state['df_metas_memori
 
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-    df_global = conn.read(worksheet="Datos", usecols=list(range(17)), ttl=0).fillna(0)
-    cols_numericas = df_global.columns.drop(['Año', 'Mes']) if not df_global.empty else []
-    for col in cols_numericas: df_global[col] = pd.to_numeric(df_global[col], errors='coerce').fillna(0)
     
+    # 1. Leer Datos Operativos
+    df_global_raw = conn.read(worksheet="Datos", usecols=list(range(17)), ttl=0)
+    
+    # Si la hoja está totalmente vacía, creamos la estructura base para que no marque error "KeyError: Año"
+    if df_global_raw.empty or 'Año' not in df_global_raw.columns:
+        df_global = pd.DataFrame(columns=COLUMNAS_BD)
+    else:
+        df_global = df_global_raw.fillna(0)
+        cols_numericas = df_global.columns.drop(['Año', 'Mes'])
+        for col in cols_numericas: 
+            df_global[col] = pd.to_numeric(df_global[col], errors='coerce').fillna(0)
+    
+    # 2. Leer Metas
     try:
-        # Intentamos leer 7 columnas (incluyendo los premios nuevos)
-        df_metas = conn.read(worksheet="Metas", usecols=list(range(7)), ttl=0).fillna(0)
-        # Aseguramos que si la hoja era vieja y no tiene las columnas nuevas, se agreguen
-        for col in COLUMNAS_METAS:
-            if col not in df_metas.columns:
-                if col == 'premio_mario': df_metas[col] = 'Viaje Los Cabos'
-                elif col == 'bono_david': df_metas[col] = 15000.0
-                elif col == 'bono_hellen': df_metas[col] = 25000.0
-                else: df_metas[col] = 0.0
-                
-        for col in ['Año', 'meta_mario', 'meta_david', 'meta_hellen', 'bono_david', 'bono_hellen']: 
-            df_metas[col] = pd.to_numeric(df_metas[col], errors='coerce').fillna(0)
-        df_metas['premio_mario'] = df_metas['premio_mario'].astype(str)
+        df_metas_raw = conn.read(worksheet="Metas", usecols=list(range(7)), ttl=0)
         
+        if df_metas_raw.empty or 'Año' not in df_metas_raw.columns:
+            df_metas = pd.DataFrame(columns=COLUMNAS_METAS)
+        else:
+            df_metas = df_metas_raw.fillna(0)
+            for col in COLUMNAS_METAS:
+                if col not in df_metas.columns:
+                    if col == 'premio_mario': df_metas[col] = 'Viaje Los Cabos'
+                    elif col == 'bono_david': df_metas[col] = 15000.0
+                    elif col == 'bono_hellen': df_metas[col] = 25000.0
+                    else: df_metas[col] = 0.0
+            for col in ['Año', 'meta_mario', 'meta_david', 'meta_hellen', 'bono_david', 'bono_hellen']: 
+                df_metas[col] = pd.to_numeric(df_metas[col], errors='coerce').fillna(0)
+            df_metas['premio_mario'] = df_metas['premio_mario'].astype(str)
+            
     except Exception: 
         df_metas = pd.DataFrame(columns=COLUMNAS_METAS)
 
     conexion_exitosa = True
     st.session_state['df_memoria'] = df_global 
     st.session_state['df_metas_memoria'] = df_metas
-except Exception:
+except Exception as e:
     df_global = st.session_state['df_memoria']
     df_metas = st.session_state['df_metas_memoria']
+    st.sidebar.error("⚠️ Usando memoria temporal. Sin conexión a Google Sheets.")
 
 # --- LÓGICA DE EXTRACCIÓN DE DATOS ---
 def get_month_data(anio, mes):
@@ -132,8 +145,6 @@ st.sidebar.markdown("---")
 OPCIONES_MENU = ["🏠 Vista General (TV)", "👤 Mario Corral", "👷 Arq. David Puga", "👩‍💼 Lic. Hellen García", "🔐 ADMIN (Config & Captura)"]
 usuario = st.sidebar.selectbox("Panel de Control:", OPCIONES_MENU)
 st.sidebar.markdown("---")
-
-if not conexion_exitosa: st.sidebar.error("⚠️ Sin conexión a Google Sheets. Usando memoria temporal.")
 
 mes_seleccionado = "Vista Anual"
 db = {}
@@ -188,7 +199,8 @@ def cartera_david_acumulada():
 def cartera_hellen_acumulada():
     status_bono = f"🔓 ¡GANADO! ${BONO_HELLEN:,.0f}" if ytd['h_ventas'] >= META_HELLEN_ANUAL else "🔒 Pendiente de alcanzar"
     color_bono = "#009640" if ytd['h_ventas'] >= META_HELLEN_ANUAL else "#888"
-    st.markdown(f"""<div class="money-card"><h3 style="color:#d4af37 !important;">💰 MI CARTERA {anio_seleccionado} (ACUMULADA)</h3><div style="display:flex; justify-content:space-around; align-items:center;"><div><div style="font-size:12px;">Ventas de Productos Acumulada</div><div style="font-size:28px; font-weight:bold;">${ytd['h_ventas']:,.2f}</div></div><div><div style="font-size:12px;">Bono por Meta Anual (${BONO_HELLEN:,.0f})</div><div style="font-size:24px; font-weight:bold; color:{color_bono};">{status_bono}</div></div></div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="money-card"><h3 style="color:#d4af37 !important;">💰 MI CARTERA {anio_seleccionado} (ACUMULADA)</h3><div style="display:flex; justify-content:space-around; align-items:center;"><div><div style="font-size:12px;">Ventas de Productos Acumulada</div><div style="font-size:28px; font-weight:bold;">${ytd['h_ventas']:,.2f}</div></div><div><div style="font-size:12px;">Bono por Meta Anual (${META_HELLEN_ANUAL:,.0f})</div><div style="font-size:24px; font-weight:bold; color:{color_bono};">{status_bono}</div></div></div></div>""", unsafe_allow_html=True)
+
 
 # ==========================================
 # 📊 PANELES PRINCIPALES (DASHBOARD TV MEJORADO)
@@ -382,64 +394,4 @@ elif usuario == "🔐 ADMIN (Config & Captura)":
                     for key, value in nuevo_registro.items():
                         df_global.at[idx, key] = value
                 else:
-                    df_global = pd.concat([df_global, pd.DataFrame([nuevo_registro])], ignore_index=True)
-                
-                if conexion_exitosa:
-                    conn.update(worksheet="Datos", data=df_global)
-                    st.success("✅ Guardado en Google Sheets correctamente.")
-                    st.cache_data.clear() 
-                else:
-                    st.session_state['df_memoria'] = df_global
-                    st.success("✅ Guardado temporalmente (Memoria local).")
-                    
-    with tab_metas:
-        st.info(f"💡 Ajusta las metas y recompensas específicas para el año **{anio_seleccionado}**.")
-        
-        with st.form("form_metas"):
-            
-            st.markdown("#### 👤 Mario Corral")
-            c_m1, c_m2 = st.columns(2)
-            meta_mario = c_m1.number_input("Meta Anual (Servicios $)", value=float(META_MARIO_ANUAL), step=100000.0)
-            premio_mario = c_m2.text_input("Premio / Destino del Viaje", value=PREMIO_MARIO)
-            
-            st.markdown("---")
-            st.markdown("#### 👷 David Puga")
-            c_d1, c_d2 = st.columns(2)
-            meta_david = c_d1.number_input("Meta Anual (Obras Detectadas $)", value=float(META_DAVID_DETECCION_ANUAL), step=50000.0)
-            bono_david = c_d2.number_input("Bono por alcanzar la meta ($)", value=float(BONO_DAVID), step=1000.0)
-            
-            st.markdown("---")
-            st.markdown("#### 👩‍💼 Hellen García")
-            c_h1, c_h2 = st.columns(2)
-            meta_hellen = c_h1.number_input("Meta Anual (Productos $)", value=float(META_HELLEN_ANUAL), step=50000.0)
-            bono_hellen = c_h2.number_input("Bono por alcanzar la meta ($)", value=float(BONO_HELLEN), step=1000.0)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("🎯 GUARDAR METAS Y PREMIOS"):
-                nuevo_registro_meta = {
-                    'Año': anio_seleccionado, 
-                    'meta_mario': meta_mario, 
-                    'meta_david': meta_david, 
-                    'meta_hellen': meta_hellen,
-                    'premio_mario': premio_mario,
-                    'bono_david': bono_david,
-                    'bono_hellen': bono_hellen
-                }
-                
-                filtro_metas = df_metas['Año'] == anio_seleccionado
-                if not df_metas[filtro_metas].empty:
-                    idx_meta = df_metas[filtro_metas].index[0]
-                    for key, value in nuevo_registro_meta.items():
-                        df_metas.at[idx_meta, key] = value
-                else:
-                    df_metas = pd.concat([df_metas, pd.DataFrame([nuevo_registro_meta])], ignore_index=True)
-                
-                if conexion_exitosa:
-                    conn.update(worksheet="Metas", data=df_metas)
-                    st.success(f"✅ Nuevas metas y premios para {anio_seleccionado} actualizadas en la nube.")
-                    st.cache_data.clear()
-                    st.rerun() 
-                else:
-                    st.session_state['df_metas_memoria'] = df_metas
-                    st.success("✅ Metas actualizadas temporalmente.")
-                    st.rerun()
+                    df_global = pd.concat([df_global, pd.DataFrame([nuevo
