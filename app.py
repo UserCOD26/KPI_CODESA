@@ -394,4 +394,64 @@ elif usuario == "🔐 ADMIN (Config & Captura)":
                     for key, value in nuevo_registro.items():
                         df_global.at[idx, key] = value
                 else:
-                    df_global = pd.concat([df_global, pd.DataFrame([nuevo
+                    df_global = pd.concat([df_global, pd.DataFrame([nuevo_registro])], ignore_index=True)
+                
+                if conexion_exitosa:
+                    conn.update(worksheet="Datos", data=df_global)
+                    st.success("✅ Guardado en Google Sheets correctamente.")
+                    st.cache_data.clear() 
+                else:
+                    st.session_state['df_memoria'] = df_global
+                    st.success("✅ Guardado temporalmente (Memoria local).")
+                    
+    with tab_metas:
+        st.info(f"💡 Ajusta las metas y recompensas específicas para el año **{anio_seleccionado}**.")
+        
+        with st.form("form_metas"):
+            
+            st.markdown("#### 👤 Mario Corral")
+            c_m1, c_m2 = st.columns(2)
+            meta_mario = c_m1.number_input("Meta Anual (Servicios $)", value=float(META_MARIO_ANUAL), step=100000.0)
+            premio_mario = c_m2.text_input("Premio / Destino del Viaje", value=PREMIO_MARIO)
+            
+            st.markdown("---")
+            st.markdown("#### 👷 David Puga")
+            c_d1, c_d2 = st.columns(2)
+            meta_david = c_d1.number_input("Meta Anual (Obras Detectadas $)", value=float(META_DAVID_DETECCION_ANUAL), step=50000.0)
+            bono_david = c_d2.number_input("Bono por alcanzar la meta ($)", value=float(BONO_DAVID), step=1000.0)
+            
+            st.markdown("---")
+            st.markdown("#### 👩‍💼 Hellen García")
+            c_h1, c_h2 = st.columns(2)
+            meta_hellen = c_h1.number_input("Meta Anual (Productos $)", value=float(META_HELLEN_ANUAL), step=50000.0)
+            bono_hellen = c_h2.number_input("Bono por alcanzar la meta ($)", value=float(BONO_HELLEN), step=1000.0)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("🎯 GUARDAR METAS Y PREMIOS"):
+                nuevo_registro_meta = {
+                    'Año': anio_seleccionado, 
+                    'meta_mario': meta_mario, 
+                    'meta_david': meta_david, 
+                    'meta_hellen': meta_hellen,
+                    'premio_mario': premio_mario,
+                    'bono_david': bono_david,
+                    'bono_hellen': bono_hellen
+                }
+                
+                filtro_metas = df_metas['Año'] == anio_seleccionado
+                if not df_metas[filtro_metas].empty:
+                    idx_meta = df_metas[filtro_metas].index[0]
+                    for key, value in nuevo_registro_meta.items():
+                        df_metas.at[idx_meta, key] = value
+                else:
+                    df_metas = pd.concat([df_metas, pd.DataFrame([nuevo_registro_meta])], ignore_index=True)
+                
+                if conexion_exitosa:
+                    conn.update(worksheet="Metas", data=df_metas)
+                    st.success(f"✅ Nuevas metas y premios para {anio_seleccionado} actualizadas en la nube.")
+                    st.cache_data.clear()
+                    st.rerun() 
+                else:
+                    st.session_state['df_metas_memoria'] = df_metas
+                    st.success("✅ Metas actualizadas temporalmente.")
+                    st.rerun()
