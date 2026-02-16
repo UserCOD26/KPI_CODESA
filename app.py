@@ -363,4 +363,104 @@ elif usuario == "🔐 ADMIN (Config & Captura)":
         with st.form("form_captura"):
             st.markdown(f"### 1. Indicadores de {NOMBRE_1}")
             c1, c2, c3 = st.columns(3)
-            v_m = c1.number_input("Facturación Mensual de Servicios ($)", value=float
+            v_m = c1.number_input("Facturación Mensual de Servicios ($)", value=float(db['m_ventas']))
+            c_m = c2.number_input("Nuevos Clientes Captados (Cantidad)", value=int(db['m_clientes']))
+            vn_m = c3.number_input("Monto Facturado a Nuevos Clientes ($)", value=float(db['m_ventas_nuevos']))
+            t_m = st.number_input("Artículos de Contenido Técnico Publicados", value=int(db['m_contenido']))
+            
+            st.markdown("---")
+            st.markdown(f"### 2. Indicadores de {NOMBRE_2}")
+            d1, d2 = st.columns(2)
+            vm_d = d1.number_input("Monto de Obras Adicionales Detectadas ($)", value=float(db['d_monto_det']))
+            vc_d = d1.number_input("Desviación de Cronograma / Presupuesto (%)", value=float(db['d_crono_dev']))
+            vo_d = d1.number_input("Cantidad de Cotizaciones Generadas", value=int(db['d_obra']))
+            vs_d = d2.number_input("Índice de Satisfacción del Cliente (NPS 0-10)", value=float(db['d_sat']), max_value=10.0)
+            vseg_d = d2.number_input("Cursos de Seguridad e Higiene Impartidos", value=int(db['d_seg']))
+            ve_d = d2.number_input("Evaluación de Desempeño Personal (%)", value=float(db['d_eval']))
+            
+            st.markdown("---")
+            st.markdown(f"### 3. Indicadores de {NOMBRE_3}")
+            h1, h2 = st.columns(2)
+            v_h = h1.number_input("Facturación Mensual de Productos ($)", value=float(db['h_ventas']))
+            vc_h = h2.number_input("Citas Generadas y Registradas (CRM)", value=int(db['h_citas']))
+            
+            hd1, hd2, hd3 = st.columns(3)
+            vm_h = hd1.number_input("Mailings Enviados", value=int(db['h_mail']))
+            vf_h = hd2.number_input("Publicaciones en Facebook", value=int(db['h_fb']))
+            va_h = hd3.number_input("Artículos de Productos Creados", value=int(db['h_art']))
+
+            if st.form_submit_button("💾 GUARDAR REGISTROS MENSUALES"):
+                nuevo_registro = {
+                    'Año': anio_seleccionado, 'Mes': mes_seleccionado,
+                    'm_ventas': v_m, 'm_clientes': int(c_m), 'm_ventas_nuevos': vn_m, 'm_contenido': int(t_m),
+                    'd_monto_det': vm_d, 'd_crono_dev': vc_d, 'd_sat': vs_d, 'd_seg': int(vseg_d), 'd_eval': ve_d, 'd_obra': int(vo_d),
+                    'h_ventas': v_h, 'h_citas': int(vc_h), 'h_mail': int(vm_h), 'h_fb': int(vf_h), 'h_art': int(va_h)
+                }
+                
+                filtro = (df_global['Año'] == anio_seleccionado) & (df_global['Mes'] == mes_seleccionado)
+                if not df_global[filtro].empty:
+                    idx = df_global[filtro].index[0]
+                    for key, value in nuevo_registro.items():
+                        df_global.at[idx, key] = value
+                else:
+                    df_global = pd.concat([df_global, pd.DataFrame([nuevo_registro])], ignore_index=True)
+                
+                if conexion_exitosa:
+                    conn.update(worksheet="Datos", data=df_global)
+                    st.success("✅ Guardado en Google Sheets correctamente.")
+                    st.cache_data.clear() 
+                else:
+                    st.session_state['df_memoria'] = df_global
+                    st.success("✅ Guardado temporalmente (Memoria local).")
+                    
+    with tab_metas:
+        st.info(f"💡 Ajusta las metas y recompensas específicas para el año **{anio_seleccionado}**.")
+        
+        with st.form("form_metas"):
+            
+            st.markdown(f"#### 👤 {NOMBRE_1}")
+            c_m1, c_m2 = st.columns(2)
+            meta_mario = c_m1.number_input(f"Meta Anual {NOMBRE_1} (Servicios $)", value=float(META_MARIO_ANUAL), step=100000.0)
+            premio_mario = c_m2.text_input("Premio / Destino del Viaje", value=PREMIO_MARIO)
+            
+            st.markdown("---")
+            st.markdown(f"#### 👷 {NOMBRE_2}")
+            c_d1, c_d2 = st.columns(2)
+            meta_david = c_d1.number_input(f"Meta Anual {NOMBRE_2} (Obras Detectadas $)", value=float(META_DAVID_DETECCION_ANUAL), step=50000.0)
+            bono_david = c_d2.number_input("Bono por alcanzar la meta ($)", value=float(BONO_DAVID), step=1000.0)
+            
+            st.markdown("---")
+            st.markdown(f"#### 👩‍💼 {NOMBRE_3}")
+            c_h1, c_h2 = st.columns(2)
+            meta_hellen = c_h1.number_input(f"Meta Anual {NOMBRE_3} (Productos $)", value=float(META_HELLEN_ANUAL), step=50000.0)
+            bono_hellen = c_h2.number_input("Bono por alcanzar la meta ($)", value=float(BONO_HELLEN), step=1000.0)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("🎯 GUARDAR METAS Y PREMIOS"):
+                nuevo_registro_meta = {
+                    'Año': anio_seleccionado, 
+                    'meta_mario': meta_mario, 
+                    'meta_david': meta_david, 
+                    'meta_hellen': meta_hellen,
+                    'premio_mario': premio_mario,
+                    'bono_david': bono_david,
+                    'bono_hellen': bono_hellen
+                }
+                
+                filtro_metas = df_metas['Año'] == anio_seleccionado
+                if not df_metas[filtro_metas].empty:
+                    idx_meta = df_metas[filtro_metas].index[0]
+                    for key, value in nuevo_registro_meta.items():
+                        df_metas.at[idx_meta, key] = value
+                else:
+                    df_metas = pd.concat([df_metas, pd.DataFrame([nuevo_registro_meta])], ignore_index=True)
+                
+                if conexion_exitosa:
+                    conn.update(worksheet="Metas", data=df_metas)
+                    st.success(f"✅ Nuevas metas y premios para {anio_seleccionado} actualizadas en la nube.")
+                    st.cache_data.clear()
+                    st.rerun() 
+                else:
+                    st.session_state['df_metas_memoria'] = df_metas
+                    st.success("✅ Metas actualizadas temporalmente.")
+                    st.rerun()
