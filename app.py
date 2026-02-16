@@ -5,6 +5,15 @@ import plotly.graph_objects as go
 from datetime import datetime
 from streamlit_gsheets import GSheetsConnection
 
+# ==========================================
+# 👥 NOMBRES DEL PERSONAL (EDITAR AQUÍ CUANDO ALGUIEN CAMBIE)
+# ==========================================
+# Si alguien sale de la empresa, solo cambia el nombre entre las comillas.
+NOMBRE_1 = "Mario Corral"       # Rol: Ventas de Servicios
+NOMBRE_2 = "Arq. David Puga"    # Rol: Obras / Calidad
+NOMBRE_3 = "Lic. Hellen García" # Rol: Ventas de Productos
+
+
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Tableros Corporativos CODESA", layout="wide", page_icon="🏢")
 
@@ -45,7 +54,7 @@ COLUMNAS_METAS = ['Año', 'meta_mario', 'meta_david', 'meta_hellen', 'premio_mar
 DEFAULT_DATA = {col: 0.0 if col not in ['Año', 'Mes', 'm_clientes', 'm_contenido', 'd_seg', 'd_obra', 'h_citas', 'h_mail', 'h_fb', 'h_art'] else 0 for col in COLUMNAS_BD if col not in ['Año', 'Mes']}
 
 # ==========================================
-# 🔌 SISTEMA ANTICAÍDAS Y CONEXIÓN A BD (A PRUEBA DE HOJAS VACÍAS)
+# 🔌 SISTEMA ANTICAÍDAS Y CONEXIÓN A BD
 # ==========================================
 conexion_exitosa = False
 
@@ -58,7 +67,6 @@ try:
     # 1. Leer Datos Operativos
     df_global_raw = conn.read(worksheet="Datos", usecols=list(range(17)), ttl=0)
     
-    # Si la hoja está totalmente vacía, creamos la estructura base para que no marque error "KeyError: Año"
     if df_global_raw.empty or 'Año' not in df_global_raw.columns:
         df_global = pd.DataFrame(columns=COLUMNAS_BD)
     else:
@@ -142,7 +150,8 @@ index_anio = ANIOS.index(anio_actual) if anio_actual in ANIOS else 0
 anio_seleccionado = st.sidebar.selectbox("📅 AÑO FISCAL:", ANIOS, index=index_anio)
 st.sidebar.markdown("---")
 
-OPCIONES_MENU = ["🏠 Vista General (TV)", "👤 Mario Corral", "👷 Arq. David Puga", "👩‍💼 Lic. Hellen García", "🔐 ADMIN (Config & Captura)"]
+# SE CONSTRUYE EL MENÚ USANDO LAS VARIABLES GLOBALES
+OPCIONES_MENU = ["🏠 Vista General (TV)", f"👤 {NOMBRE_1}", f"👷 {NOMBRE_2}", f"👩‍💼 {NOMBRE_3}", "🔐 ADMIN (Config & Captura)"]
 usuario = st.sidebar.selectbox("Panel de Control:", OPCIONES_MENU)
 st.sidebar.markdown("---")
 
@@ -215,8 +224,8 @@ if usuario == "🏠 Vista General (TV)":
         df_chart['Mes'] = pd.Categorical(df_chart['Mes'], categories=MESES, ordered=True)
         df_chart = df_chart.sort_values('Mes')
 
-    # --- SECCIÓN MARIO CORRAL ---
-    st.markdown("### 👤 MARIO CORRAL | Crecimiento de Ventas de Servicios")
+    # --- SECCIÓN 1 ---
+    st.markdown(f"### 👤 {NOMBRE_1.upper()} | Crecimiento de Ventas de Servicios")
     col_m1, col_m2 = st.columns([1, 3])
     with col_m1:
         st.metric("Ventas de Servicios (YTD)", f"${ytd['m_ventas']:,.0f}")
@@ -246,8 +255,8 @@ if usuario == "🏠 Vista General (TV)":
 
     st.markdown("---")
 
-    # --- SECCIÓN DAVID PUGA ---
-    st.markdown("### 👷 DAVID PUGA | Oportunidades Generadas en Sitio")
+    # --- SECCIÓN 2 ---
+    st.markdown(f"### 👷 {NOMBRE_2.upper()} | Oportunidades Generadas en Sitio")
     col_d1, col_d2 = st.columns([1, 3])
     with col_d1:
         st.markdown(f"""<div style="background-color:#e6f4ea; padding:15px; border-radius:10px; text-align:center; border:1px solid #009640;">
@@ -280,8 +289,8 @@ if usuario == "🏠 Vista General (TV)":
 
     st.markdown("---")
 
-    # --- SECCIÓN HELLEN GARCÍA ---
-    st.markdown("### 👩‍💼 HELLEN GARCÍA | Carrera a la Meta de Productos")
+    # --- SECCIÓN 3 ---
+    st.markdown(f"### 👩‍💼 {NOMBRE_3.upper()} | Carrera a la Meta de Productos")
     col_h1, col_h2 = st.columns([1, 3])
     with col_h1:
         st.metric("Ventas de Productos (YTD)", f"${ytd['h_ventas']:,.0f}")
@@ -315,16 +324,16 @@ if usuario == "🏠 Vista General (TV)":
             st.plotly_chart(fig_h, use_container_width=True)
 
 # --- PANELES INDIVIDUALES ---
-elif usuario == "👤 Mario Corral":
-    st.title(f"👤 Mario Corral - {mes_seleccionado} {anio_seleccionado}")
+elif usuario == f"👤 {NOMBRE_1}":
+    st.title(f"👤 {NOMBRE_1} - {mes_seleccionado} {anio_seleccionado}")
     cartera_mario_acumulada()
     c1, c2, c3 = st.columns(3)
     with c1: mostrar_kpi("Ventas de Servicios", db['m_ventas'], META_MARIO_MENSUAL, f"Meta Mensual: ${META_MARIO_MENSUAL:,.0f}", f"Aporta al {PREMIO_MARIO}", True)
     with c2: mostrar_kpi("Nuevos Clientes Captados", db['m_clientes'], 1, "Meta: Al menos 1 cliente nuevo", "Genera Comisión del 5%")
     with c3: mostrar_kpi("Contenido Técnico Publicado", db['m_contenido'], 2, "Meta: 2 Artículos al mes", "Requisito operativo de liderazgo")
 
-elif usuario == "👷 Arq. David Puga":
-    st.title(f"👷 David Puga - {mes_seleccionado} {anio_seleccionado}")
+elif usuario == f"👷 {NOMBRE_2}":
+    st.title(f"👷 {NOMBRE_2} - {mes_seleccionado} {anio_seleccionado}")
     cartera_david_acumulada()
     c1, c2 = st.columns(2)
     with c1: mostrar_kpi("Oportunidades Detectadas en Obra", db['d_monto_det'], META_DAVID_MENSUAL, f"Meta Mensual: >${META_DAVID_MENSUAL:,.0f} detectados", "Suma para Comisión 1% y Bono extra", True)
@@ -333,8 +342,8 @@ elif usuario == "👷 Arq. David Puga":
     with c3: mostrar_kpi("Índice de Satisfacción (NPS)", db['d_sat'], 9.0, "Meta: Calificación mínima 9/10", "KPI indispensable de Calidad Post-Venta")
     with c4: mostrar_kpi("Cursos de Seguridad e Higiene", db['d_seg'], 2, "Meta: 2 Cursos impartidos en mes", "KPI indispensable de Seguridad (Bitácora)")
 
-elif usuario == "👩‍💼 Lic. Hellen García":
-    st.title(f"👩‍💼 Hellen García - {mes_seleccionado} {anio_seleccionado}")
+elif usuario == f"👩‍💼 {NOMBRE_3}":
+    st.title(f"👩‍💼 {NOMBRE_3} - {mes_seleccionado} {anio_seleccionado}")
     cartera_hellen_acumulada()
     c1, c2, c3 = st.columns(3)
     with c1: mostrar_kpi("Ventas de Productos", db['h_ventas'], META_HELLEN_MENSUAL, f"Meta Mensual: ~${META_HELLEN_MENSUAL:,.0f} en facturación", f"Suma acumulado para Bono de ${BONO_HELLEN:,.0f}", True)
@@ -352,106 +361,6 @@ elif usuario == "🔐 ADMIN (Config & Captura)":
         db = get_month_data(anio_seleccionado, mes_seleccionado)
         
         with st.form("form_captura"):
-            st.markdown("### 1. Indicadores de Mario Corral")
+            st.markdown(f"### 1. Indicadores de {NOMBRE_1}")
             c1, c2, c3 = st.columns(3)
-            v_m = c1.number_input("Facturación Mensual de Servicios ($)", value=float(db['m_ventas']))
-            c_m = c2.number_input("Nuevos Clientes Captados (Cantidad)", value=int(db['m_clientes']))
-            vn_m = c3.number_input("Monto Facturado a Nuevos Clientes ($)", value=float(db['m_ventas_nuevos']))
-            t_m = st.number_input("Artículos de Contenido Técnico Publicados", value=int(db['m_contenido']))
-            
-            st.markdown("---")
-            st.markdown("### 2. Indicadores de David Puga")
-            d1, d2 = st.columns(2)
-            vm_d = d1.number_input("Monto de Obras Adicionales Detectadas ($)", value=float(db['d_monto_det']))
-            vc_d = d1.number_input("Desviación de Cronograma / Presupuesto (%)", value=float(db['d_crono_dev']))
-            vo_d = d1.number_input("Cantidad de Cotizaciones Generadas", value=int(db['d_obra']))
-            vs_d = d2.number_input("Índice de Satisfacción del Cliente (NPS 0-10)", value=float(db['d_sat']), max_value=10.0)
-            vseg_d = d2.number_input("Cursos de Seguridad e Higiene Impartidos", value=int(db['d_seg']))
-            ve_d = d2.number_input("Evaluación de Desempeño Personal (%)", value=float(db['d_eval']))
-            
-            st.markdown("---")
-            st.markdown("### 3. Indicadores de Hellen García")
-            h1, h2 = st.columns(2)
-            v_h = h1.number_input("Facturación Mensual de Productos ($)", value=float(db['h_ventas']))
-            vc_h = h2.number_input("Citas Generadas y Registradas (CRM)", value=int(db['h_citas']))
-            
-            hd1, hd2, hd3 = st.columns(3)
-            vm_h = hd1.number_input("Mailings Enviados", value=int(db['h_mail']))
-            vf_h = hd2.number_input("Publicaciones en Facebook", value=int(db['h_fb']))
-            va_h = hd3.number_input("Artículos de Productos Creados", value=int(db['h_art']))
-
-            if st.form_submit_button("💾 GUARDAR REGISTROS MENSUALES"):
-                nuevo_registro = {
-                    'Año': anio_seleccionado, 'Mes': mes_seleccionado,
-                    'm_ventas': v_m, 'm_clientes': int(c_m), 'm_ventas_nuevos': vn_m, 'm_contenido': int(t_m),
-                    'd_monto_det': vm_d, 'd_crono_dev': vc_d, 'd_sat': vs_d, 'd_seg': int(vseg_d), 'd_eval': ve_d, 'd_obra': int(vo_d),
-                    'h_ventas': v_h, 'h_citas': int(vc_h), 'h_mail': int(vm_h), 'h_fb': int(vf_h), 'h_art': int(va_h)
-                }
-                
-                filtro = (df_global['Año'] == anio_seleccionado) & (df_global['Mes'] == mes_seleccionado)
-                if not df_global[filtro].empty:
-                    idx = df_global[filtro].index[0]
-                    for key, value in nuevo_registro.items():
-                        df_global.at[idx, key] = value
-                else:
-                    df_global = pd.concat([df_global, pd.DataFrame([nuevo_registro])], ignore_index=True)
-                
-                if conexion_exitosa:
-                    conn.update(worksheet="Datos", data=df_global)
-                    st.success("✅ Guardado en Google Sheets correctamente.")
-                    st.cache_data.clear() 
-                else:
-                    st.session_state['df_memoria'] = df_global
-                    st.success("✅ Guardado temporalmente (Memoria local).")
-                    
-    with tab_metas:
-        st.info(f"💡 Ajusta las metas y recompensas específicas para el año **{anio_seleccionado}**.")
-        
-        with st.form("form_metas"):
-            
-            st.markdown("#### 👤 Mario Corral")
-            c_m1, c_m2 = st.columns(2)
-            meta_mario = c_m1.number_input("Meta Anual (Servicios $)", value=float(META_MARIO_ANUAL), step=100000.0)
-            premio_mario = c_m2.text_input("Premio / Destino del Viaje", value=PREMIO_MARIO)
-            
-            st.markdown("---")
-            st.markdown("#### 👷 David Puga")
-            c_d1, c_d2 = st.columns(2)
-            meta_david = c_d1.number_input("Meta Anual (Obras Detectadas $)", value=float(META_DAVID_DETECCION_ANUAL), step=50000.0)
-            bono_david = c_d2.number_input("Bono por alcanzar la meta ($)", value=float(BONO_DAVID), step=1000.0)
-            
-            st.markdown("---")
-            st.markdown("#### 👩‍💼 Hellen García")
-            c_h1, c_h2 = st.columns(2)
-            meta_hellen = c_h1.number_input("Meta Anual (Productos $)", value=float(META_HELLEN_ANUAL), step=50000.0)
-            bono_hellen = c_h2.number_input("Bono por alcanzar la meta ($)", value=float(BONO_HELLEN), step=1000.0)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("🎯 GUARDAR METAS Y PREMIOS"):
-                nuevo_registro_meta = {
-                    'Año': anio_seleccionado, 
-                    'meta_mario': meta_mario, 
-                    'meta_david': meta_david, 
-                    'meta_hellen': meta_hellen,
-                    'premio_mario': premio_mario,
-                    'bono_david': bono_david,
-                    'bono_hellen': bono_hellen
-                }
-                
-                filtro_metas = df_metas['Año'] == anio_seleccionado
-                if not df_metas[filtro_metas].empty:
-                    idx_meta = df_metas[filtro_metas].index[0]
-                    for key, value in nuevo_registro_meta.items():
-                        df_metas.at[idx_meta, key] = value
-                else:
-                    df_metas = pd.concat([df_metas, pd.DataFrame([nuevo_registro_meta])], ignore_index=True)
-                
-                if conexion_exitosa:
-                    conn.update(worksheet="Metas", data=df_metas)
-                    st.success(f"✅ Nuevas metas y premios para {anio_seleccionado} actualizadas en la nube.")
-                    st.cache_data.clear()
-                    st.rerun() 
-                else:
-                    st.session_state['df_metas_memoria'] = df_metas
-                    st.success("✅ Metas actualizadas temporalmente.")
-                    st.rerun()
+            v_m = c1.number_input("Facturación Mensual de Servicios ($)", value=float
