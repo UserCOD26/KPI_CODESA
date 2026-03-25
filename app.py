@@ -9,9 +9,9 @@ from streamlit_gsheets import GSheetsConnection
 # 👥 NOMBRES DEL PERSONAL (EDITAR AQUÍ CUANDO ALGUIEN CAMBIE)
 # ==========================================
 # Si alguien sale de la empresa, solo cambia el nombre entre las comillas.
-NOMBRE_1 = "Mario Corral"       # Rol: Ventas de Servicios
+NOMBRE_1 = "Ing. Mario Corral"  # Rol: Ventas de Servicios
 NOMBRE_2 = "Arq. David Puga"    # Rol: Obras / Calidad
-NOMBRE_3 = "Lic. Hellen García" # Rol: Ventas de Productos
+NOMBRE_3 = "México Office"      # Rol: Ventas de Productos
 
 
 # --- CONFIGURACIÓN DE PÁGINA ---
@@ -151,7 +151,7 @@ anio_seleccionado = st.sidebar.selectbox("📅 AÑO FISCAL:", ANIOS, index=index
 st.sidebar.markdown("---")
 
 # SE CONSTRUYE EL MENÚ USANDO LAS VARIABLES GLOBALES
-OPCIONES_MENU = ["🏠 Vista General (TV)", f"👤 {NOMBRE_1}", f"👷 {NOMBRE_2}", f"👩‍💼 {NOMBRE_3}", "🔐 ADMIN (Config & Captura)"]
+OPCIONES_MENU = ["🏠 Vista General (TV)", f"👨‍💼 {NOMBRE_1}", f"👷 {NOMBRE_2}", f"👩‍💼 {NOMBRE_3}", "🔐 ADMIN (Config & Captura)"]
 usuario = st.sidebar.selectbox("Panel de Control:", OPCIONES_MENU)
 st.sidebar.markdown("---")
 
@@ -225,7 +225,7 @@ if usuario == "🏠 Vista General (TV)":
         df_chart = df_chart.sort_values('Mes')
 
     # --- SECCIÓN 1 ---
-    st.markdown(f"### 👤 {NOMBRE_1.upper()} | Crecimiento de Ventas de Servicios")
+    st.markdown(f"### 👨‍💼 {NOMBRE_1.upper()} | Crecimiento de Ventas de Servicios")
     col_m1, col_m2 = st.columns([1, 3])
     with col_m1:
         st.metric("Ventas de Servicios (YTD)", f"${ytd['m_ventas']:,.0f}")
@@ -324,8 +324,8 @@ if usuario == "🏠 Vista General (TV)":
             st.plotly_chart(fig_h, use_container_width=True)
 
 # --- PANELES INDIVIDUALES ---
-elif usuario == f"👤 {NOMBRE_1}":
-    st.title(f"👤 {NOMBRE_1} - {mes_seleccionado} {anio_seleccionado}")
+elif usuario == f"👨‍💼 {NOMBRE_1}":
+    st.title(f"👨‍💼 {NOMBRE_1} - {mes_seleccionado} {anio_seleccionado}")
     cartera_mario_acumulada()
     c1, c2, c3 = st.columns(3)
     with c1: mostrar_kpi("Ventas de Servicios", db['m_ventas'], META_MARIO_MENSUAL, f"Meta Mensual: ${META_MARIO_MENSUAL:,.0f}", f"Aporta al {PREMIO_MARIO}", True)
@@ -418,7 +418,7 @@ elif usuario == "🔐 ADMIN (Config & Captura)":
         
         with st.form("form_metas"):
             
-            st.markdown(f"#### 👤 {NOMBRE_1}")
+            st.markdown(f"#### 👨‍💼 {NOMBRE_1}")
             c_m1, c_m2 = st.columns(2)
             meta_mario = c_m1.number_input(f"Meta Anual {NOMBRE_1} (Servicios $)", value=float(META_MARIO_ANUAL), step=100000.0)
             premio_mario = c_m2.text_input("Premio / Destino del Viaje", value=PREMIO_MARIO)
